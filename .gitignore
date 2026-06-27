@@ -1,0 +1,8 @@
+config.toml
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite3
+.env
+.DS_Store
