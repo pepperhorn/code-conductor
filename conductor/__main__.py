@@ -24,7 +24,10 @@ def main() -> None:
         help="Path to config.toml",
     )
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     try:
         asyncio.run(run(args.config))
     except ConfigError as exc:

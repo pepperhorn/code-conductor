@@ -61,7 +61,10 @@ class AppConfig:
     bot_slots: tuple[BotSlotConfig, ...]
 
 
-def load_config(path: Path | str = "config.toml", environ: dict[str, str] | None = None) -> AppConfig:
+def load_config(
+    path: Path | str = "config.toml",
+    environ: dict[str, str] | None = None,
+) -> AppConfig:
     config_path = Path(path)
     env = os.environ if environ is None else environ
     if not config_path.exists():
@@ -99,7 +102,8 @@ def load_config(path: Path | str = "config.toml", environ: dict[str, str] | None
     bot_slots = tuple(_bot_slot(item, idx) for idx, item in enumerate(slot_data, start=1))
     if len(bot_slots) != slot_count:
         raise ConfigError(
-            f"configured bot slot count ({len(bot_slots)}) must match {slot_count_env} ({slot_count})"
+            "configured bot slot count "
+            f"({len(bot_slots)}) must match {slot_count_env} ({slot_count})"
         )
     names = [slot.name for slot in bot_slots]
     if len(names) != len(set(names)):
