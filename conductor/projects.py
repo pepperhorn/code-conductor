@@ -39,6 +39,36 @@ def discover_projects(root: Path, max_depth: int) -> list[ProjectEntry]:
     return entries
 
 
+def direct_child_projects(root: Path, current: Path) -> list[ProjectEntry]:
+    root = root.resolve()
+    current = validate_project_path(root, current)
+    entries: list[ProjectEntry] = []
+    try:
+        children = [child for child in current.iterdir() if child.is_dir()]
+    except OSError:
+        return entries
+    for child in sorted(children):
+        if child.name.startswith("."):
+            continue
+        resolved = child.resolve()
+        if root not in resolved.parents and resolved != root:
+            continue
+        branch, dirty = _git_status(resolved)
+        label = child.name
+        if branch:
+            label += f" [{branch}{'*' if dirty else ''}]"
+        entries.append(
+            ProjectEntry(
+                path=resolved,
+                label=label,
+                depth=len(resolved.relative_to(root).parts),
+                git_branch=branch,
+                dirty=dirty,
+            )
+        )
+    return entries
+
+
 def validate_project_path(root: Path, candidate: Path) -> Path:
     root = root.resolve()
     if ".." in candidate.parts:

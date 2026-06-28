@@ -15,7 +15,7 @@ from telegram.ext import (
 )
 
 from conductor.config import AppConfig
-from conductor.projects import ProjectEntry, discover_projects
+from conductor.projects import ProjectEntry, direct_child_projects
 from conductor.sessions.manager import SessionManager
 from conductor.sessions.registry import Registry
 from conductor.telegram.keyboards import cli_keyboard, data_plane_keyboard, project_keyboard
@@ -29,6 +29,8 @@ class BotState:
     registry: Registry
     manager: SessionManager
     projects: list[ProjectEntry]
+    current_dir: Path
+    selected_project: Path | None = None
 
 
 def build_application(
@@ -37,7 +39,13 @@ def build_application(
     manager: SessionManager,
 ) -> Application:
     app = Application.builder().token(config.telegram.control_bot_token).build()
-    state = BotState(config=config, registry=registry, manager=manager, projects=[])
+    state = BotState(
+        config=config,
+        registry=registry,
+        manager=manager,
+        projects=[],
+        current_dir=config.project.root,
+    )
     app.bot_data["state"] = state
     app.add_handler(CommandHandler("start", _allowlisted(start)))
     app.add_handler(CommandHandler("help", _allowlisted(help_command)))
@@ -73,9 +81,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state = _state(context)
     await state.registry.audit(_chat_id(update), "/new")
-    state.projects = discover_projects(state.config.project.root, state.config.project.max_depth)
+    state.current_dir = state.config.project.root
+    state.selected_project = None
+    state.projects = direct_child_projects(state.config.project.root, state.current_dir)
     await update.effective_message.reply_text(
-        "Choose a project:",
+        "Choose a top-level folder:",
         reply_markup=project_keyboard(state.projects),
     )
 
@@ -144,25 +154,48 @@ async def callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if data.startswith("projects_page:"):
         page = int(data.split(":", 1)[1])
         await query.edit_message_reply_markup(
-            reply_markup=project_keyboard(state.projects, page=page)
+            reply_markup=_browser_keyboard(state, page=page)
         )
         return
-    if data.startswith("project:"):
+    if data == "project_back":
+        if state.current_dir != state.config.project.root:
+            state.current_dir = state.current_dir.parent
+        state.projects = direct_child_projects(state.config.project.root, state.current_dir)
+        await query.edit_message_text(
+            _browser_title(state),
+            reply_markup=_browser_keyboard(state),
+        )
+        return
+    if data.startswith("browse:"):
         idx = int(data.split(":", 1)[1])
-        await query.edit_message_text("Choose CLI:", reply_markup=cli_keyboard(idx))
+        state.current_dir = state.projects[idx].path
+        state.projects = direct_child_projects(state.config.project.root, state.current_dir)
+        await query.edit_message_text(
+            _browser_title(state),
+            reply_markup=_browser_keyboard(state),
+        )
+        return
+    if data == "project_here":
+        state.selected_project = state.current_dir
+        await query.edit_message_text(
+            f"Start in {state.selected_project}.\nChoose CLI:",
+            reply_markup=cli_keyboard(),
+        )
         return
     if data.startswith("cli:"):
-        _prefix, idx, cli = data.split(":", 2)
+        _prefix, cli = data.split(":", 1)
         await query.edit_message_text(
             "Choose data plane:",
-            reply_markup=data_plane_keyboard(int(idx), cli),
+            reply_markup=data_plane_keyboard(cli),
         )
         return
     if data.startswith("start:"):
-        _prefix, idx_raw, cli, data_plane = data.split(":", 3)
-        project = state.projects[int(idx_raw)]
+        _prefix, cli, data_plane = data.split(":", 2)
+        if state.selected_project is None:
+            await query.edit_message_text("No project selected. Use /new to start again.")
+            return
         result = await state.manager.start(
-            cwd=project.path,
+            cwd=state.selected_project,
             cli=cli,
             data_plane=data_plane,
             bypass=state.config.defaults.bypass_permissions,
@@ -175,6 +208,23 @@ async def callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if result.degraded_reason:
             text += f"\n\n{result.degraded_reason}"
         await query.edit_message_text(text)
+
+
+def _browser_title(state: BotState) -> str:
+    rel = state.current_dir.relative_to(state.config.project.root)
+    if str(rel) == ".":
+        return "Choose a top-level folder:"
+    return f"{rel}\nChoose New here or a subfolder:"
+
+
+def _browser_keyboard(state: BotState, *, page: int = 0):
+    at_root = state.current_dir == state.config.project.root
+    return project_keyboard(
+        state.projects,
+        page=page,
+        include_new_here=not at_root,
+        include_back=not at_root,
+    )
 
 
 def _start_message(session_id: str, cwd: Path, data_plane: str) -> str:

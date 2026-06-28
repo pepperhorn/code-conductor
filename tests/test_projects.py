@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from conductor.projects import discover_projects, validate_project_path
+from conductor.projects import direct_child_projects, discover_projects, validate_project_path
 
 
 def test_discover_projects_respects_max_depth(tmp_path: Path) -> None:
@@ -25,3 +25,13 @@ def test_validate_project_path_rejects_escape(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="under"):
         validate_project_path(tmp_path, outside)
+
+
+def test_direct_child_projects_only_returns_one_level(tmp_path: Path) -> None:
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "b").mkdir()
+    (tmp_path / "c").mkdir()
+
+    projects = direct_child_projects(tmp_path, tmp_path)
+
+    assert [project.path.name for project in projects] == ["a", "c"]
