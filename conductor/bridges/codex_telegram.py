@@ -4,6 +4,8 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass
+from pathlib import Path
+from uuid import uuid4
 
 from telegram import Bot, Update
 from telegram.error import NetworkError, TelegramError
@@ -122,9 +124,12 @@ class CodexTelegramBridge:
             return
         if chat.id not in self.config.telegram.allowed_chat_ids:
             return
-        text = (message.text or "").strip()
-        if not text:
-            await message.reply_text("Send text to forward it to Codex.")
+        text = (message.text or message.caption or "").strip()
+        attachment = await self._download_attachment(bot, session, slot, update)
+        if attachment:
+            text = _attachment_prompt(text, attachment)
+        elif not text:
+            await message.reply_text("Send text or an attachment to forward it to Codex.")
             return
         if text in {"/start", "/status"}:
             await message.reply_text(_status_text(session, slot))
@@ -150,6 +155,52 @@ class CodexTelegramBridge:
             detail="Codex response sent to slot bot.",
             stats=parse_codex_stats(pane),
         )
+
+    async def _download_attachment(
+        self,
+        bot: Bot,
+        session: SessionRecord,
+        slot: BotSlotRecord,
+        update: Update,
+    ) -> Path | None:
+        message = update.effective_message
+        if message is None:
+            return None
+        file_id = None
+        filename = None
+        if message.document:
+            file_id = message.document.file_id
+            filename = message.document.file_name
+        elif message.photo:
+            photo = message.photo[-1]
+            file_id = photo.file_id
+            filename = f"photo-{photo.file_unique_id}.jpg"
+        elif message.video:
+            file_id = message.video.file_id
+            filename = message.video.file_name or f"video-{message.video.file_unique_id}.mp4"
+        elif message.audio:
+            file_id = message.audio.file_id
+            filename = message.audio.file_name or f"audio-{message.audio.file_unique_id}"
+        elif message.voice:
+            file_id = message.voice.file_id
+            filename = f"voice-{message.voice.file_unique_id}.ogg"
+        if not file_id:
+            return None
+
+        safe_name = _safe_filename(filename or f"attachment-{uuid4().hex}")
+        inbox = (
+            Path.home()
+            / ".conductor"
+            / "slots"
+            / _safe_filename(slot.name)
+            / session.id[:8]
+            / "inbox"
+        )
+        inbox.mkdir(parents=True, exist_ok=True)
+        path = inbox / f"{uuid4().hex}-{safe_name}"
+        telegram_file = await bot.get_file(file_id)
+        await telegram_file.download_to_drive(custom_path=path)
+        return path
 
     async def _wait_for_codex_response(
         self,
@@ -192,6 +243,18 @@ def _clip(text: str, limit: int = 3900) -> str:
 def _codex_is_working(pane: str) -> bool:
     tail = "\n".join(pane.splitlines()[-12:])
     return "Working (" in tail or "esc to interrupt" in tail
+
+
+def _attachment_prompt(text: str, path: Path | str) -> str:
+    prompt = f"User attached a file at: {path}\nPlease inspect it."
+    if text:
+        prompt += f"\n\nUser message:\n{text}"
+    return prompt
+
+
+def _safe_filename(name: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "-", name).strip(".-")
+    return safe or "attachment"
 
 
 def parse_codex_stats(pane: str) -> SessionStats:

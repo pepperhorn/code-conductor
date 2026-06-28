@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from conductor.bridges.codex_telegram import (
+    _attachment_prompt,
     _clip,
     _codex_is_working,
+    _safe_filename,
     _status_text,
     parse_codex_stats,
 )
@@ -59,3 +61,15 @@ def test_parse_codex_stats_from_status_line() -> None:
     assert stats.context_remaining == "91% left"
     assert stats.context_used == "9% used"
     assert stats.context_limit == "5h"
+
+
+def test_attachment_prompt_includes_path_and_caption() -> None:
+    prompt = _attachment_prompt("what is this?", "/tmp/file.pdf")
+
+    assert "User attached a file at: /tmp/file.pdf" in prompt
+    assert "what is this?" in prompt
+
+
+def test_safe_filename_strips_unsafe_chars() -> None:
+    assert _safe_filename("../../bad file.pdf") == "bad-file.pdf"
+    assert _safe_filename("!!!") == "attachment"
