@@ -136,9 +136,9 @@ class CodexTelegramBridge:
             title=f"slot request: @{slot.name}",
             detail=_clip(text, limit=500),
         )
+        before = await self.tmux.capture(session.tmux_target)
         await self.tmux.send_text(session.tmux_target, text)
-        await asyncio.sleep(2)
-        pane = await self.tmux.capture(session.tmux_target)
+        pane = await self._wait_for_codex_response(session.tmux_target, before)
         response = _clip(pane)
         await bot.send_message(chat_id=chat.id, text=response)
         await self.notifier.slot_activity(
@@ -146,6 +146,23 @@ class CodexTelegramBridge:
             title=f"slot response: @{slot.name}",
             detail=_clip(response, limit=500),
         )
+
+    async def _wait_for_codex_response(
+        self,
+        tmux_target: str,
+        before: str,
+        *,
+        timeout_seconds: int = 90,
+    ) -> str:
+        last = before
+        for _ in range(timeout_seconds):
+            await asyncio.sleep(1)
+            pane = await self.tmux.capture(tmux_target)
+            if pane != before:
+                last = pane
+            if pane != before and not _codex_is_working(pane):
+                return pane
+        return last
 
 
 def _status_text(session: SessionRecord, slot: BotSlotRecord) -> str:
@@ -166,3 +183,8 @@ def _clip(text: str, limit: int = 3900) -> str:
     if len(stripped) <= limit:
         return stripped
     return stripped[-limit:]
+
+
+def _codex_is_working(pane: str) -> bool:
+    tail = "\n".join(pane.splitlines()[-12:])
+    return "Working (" in tail or "esc to interrupt" in tail

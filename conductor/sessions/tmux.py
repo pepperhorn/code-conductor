@@ -127,3 +127,6 @@ class Tmux:
         )
         await proc.communicate()
         await self.send_enter(target)
+        # Some TUIs accept the paste but need a second Enter to submit the prompt.
+        await asyncio.sleep(0.1)
+        await self.send_enter(target)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from conductor.bridges.codex_telegram import _clip, _status_text
+from conductor.bridges.codex_telegram import _clip, _codex_is_working, _status_text
 from conductor.sessions.registry import BotSlotRecord, SessionRecord
 
 
@@ -29,3 +29,8 @@ def test_codex_bridge_status_text_mentions_slot() -> None:
 def test_clip_returns_tail() -> None:
     assert _clip("abc", limit=10) == "abc"
     assert _clip("0123456789abcdef", limit=4) == "cdef"
+
+
+def test_codex_working_detection_checks_tail() -> None:
+    assert _codex_is_working("hello\n• Working (4s • esc to interrupt)")
+    assert not _codex_is_working("done\n› next prompt")
