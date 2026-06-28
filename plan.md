@@ -323,7 +323,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/home/shaun/conductor
 Environment=CONDUCTOR_PROJECT_ROOT=/home/shaun
-Environment=CONDUCTOR_CHANNEL_SLOTS=5
+Environment=CONDUCTOR_CHANNEL_SLOTS=4
 ExecStart=/home/shaun/conductor/.venv/bin/python -m conductor
 Restart=always
 RestartSec=3

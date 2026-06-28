@@ -43,7 +43,7 @@ The service sets:
 
 ```bash
 CONDUCTOR_PROJECT_ROOT=/home/shaun
-CONDUCTOR_CHANNEL_SLOTS=5
+CONDUCTOR_CHANNEL_SLOTS=4
 ```
 
 If you change `CONDUCTOR_CHANNEL_SLOTS`, make sure `config.toml` has the same number of `[[bot_slots]]` entries.
@@ -76,7 +76,7 @@ Starting the distro starts user systemd, which starts Conductor.
 ## 6. Smoke checks
 
 ```bash
-CONDUCTOR_PROJECT_ROOT=/home/shaun CONDUCTOR_CHANNEL_SLOTS=5 \
+CONDUCTOR_PROJECT_ROOT=/home/shaun CONDUCTOR_CHANNEL_SLOTS=4 \
   .venv/bin/python -m conductor --config config.toml
 ```
 

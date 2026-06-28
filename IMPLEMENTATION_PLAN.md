@@ -6,7 +6,7 @@ This is the build plan for `plan.md`. It keeps v1 focused on a working local con
 
 - Conductor install directory: `/home/shaun/conductor`
 - Project picker root: `CONDUCTOR_PROJECT_ROOT`, set to `/home/shaun` on this box
-- Telegram channel slot count: `CONDUCTOR_CHANNEL_SLOTS`, default `5`
+- Telegram channel slot count: `CONDUCTOR_CHANNEL_SLOTS`, default `5`; target install uses `4`
 - Primary CLI target for v1: Claude Code
 - Codex target for v1: adapter stub only, unless the core lifecycle needs a neutral interface check
 
@@ -212,7 +212,7 @@ Make local WSL deployment repeatable.
 
 - Write `deploy/conductor.service`.
 - Include `Environment=CONDUCTOR_PROJECT_ROOT=/home/shaun`.
-- Include `Environment=CONDUCTOR_CHANNEL_SLOTS=5`.
+- Include `Environment=CONDUCTOR_CHANNEL_SLOTS=4` for the target install.
 - Document optional `EnvironmentFile` override.
 - Write `deploy/setup-wsl.md` with systemd, Task Scheduler, and smoke-check steps.
 

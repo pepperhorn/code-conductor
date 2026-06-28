@@ -33,7 +33,3 @@ token = "PASTE_BOT_3_TOKEN"
 [[bot_slots]]
 name = "session-bot-4"
 token = "PASTE_BOT_4_TOKEN"
-
-[[bot_slots]]
-name = "session-bot-5"
-token = "PASTE_BOT_5_TOKEN"

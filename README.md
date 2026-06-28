@@ -17,7 +17,7 @@ This repository contains a working v1 scaffold plus the implementation specifica
 ## Key Local Settings
 
 - `CONDUCTOR_PROJECT_ROOT`: project discovery root. On the target box this is `/home/shaun`.
-- `CONDUCTOR_CHANNEL_SLOTS`: Telegram session-bot pool size. Defaults to `5`.
+- `CONDUCTOR_CHANNEL_SLOTS`: Telegram session-bot pool size. Defaults to `5`; this install uses `4`.
 
 ## Customization
 
@@ -37,7 +37,7 @@ Run locally:
 ```bash
 cp config.example.toml config.toml
 chmod 600 config.toml
-CONDUCTOR_PROJECT_ROOT=/home/shaun CONDUCTOR_CHANNEL_SLOTS=5 \
+CONDUCTOR_PROJECT_ROOT=/home/shaun CONDUCTOR_CHANNEL_SLOTS=4 \
   .venv/bin/python -m conductor --config config.toml
 ```
 
