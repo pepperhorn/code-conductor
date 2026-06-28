@@ -24,9 +24,7 @@ class ClaudeCodeAdapter(CLIAdapter):
         if data_plane in {"telegram", "both"}:
             if not bot_token:
                 raise UnsupportedDataPlane("telegram data plane requires a leased bot token")
-            raise UnsupportedDataPlane(
-                "Claude Telegram per-process token injection is not verified"
-            )
+            cmd += ["--channels", "plugin:telegram@claude-plugins-official"]
         if bypass:
             cmd += ["--permission-mode", "bypassPermissions"]
         return cmd
@@ -46,9 +44,7 @@ class ClaudeCodeAdapter(CLIAdapter):
         if data_plane in {"telegram", "both"}:
             if not bot_token:
                 raise UnsupportedDataPlane("telegram data plane requires a leased bot token")
-            raise UnsupportedDataPlane(
-                "Claude Telegram per-process token injection is not verified"
-            )
+            cmd += ["--channels", "plugin:telegram@claude-plugins-official"]
         if bypass:
             cmd += ["--permission-mode", "bypassPermissions"]
         return cmd

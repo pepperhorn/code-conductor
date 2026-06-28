@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from conductor.adapters.base import UnsupportedDataPlane
 from conductor.adapters.claude_code import ClaudeCodeAdapter
 from conductor.adapters.codex import CodexAdapter
 
@@ -26,14 +23,21 @@ def test_claude_builds_remote_control_command(tmp_path: Path) -> None:
     ]
 
 
-def test_claude_rejects_unverified_telegram_injection(tmp_path: Path) -> None:
-    with pytest.raises(UnsupportedDataPlane):
-        ClaudeCodeAdapter().build_launch_cmd(
-            tmp_path,
-            bypass=True,
-            data_plane="telegram",
-            bot_token="TOKEN",
-        )
+def test_claude_builds_telegram_channel_command(tmp_path: Path) -> None:
+    cmd = ClaudeCodeAdapter().build_launch_cmd(
+        tmp_path,
+        bypass=True,
+        data_plane="telegram",
+        bot_token="TOKEN",
+    )
+
+    assert cmd == [
+        "claude",
+        "--channels",
+        "plugin:telegram@claude-plugins-official",
+        "--permission-mode",
+        "bypassPermissions",
+    ]
 
 
 def test_codex_degrades_to_tmux_style_command(tmp_path: Path) -> None:

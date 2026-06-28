@@ -31,11 +31,18 @@ class Tmux:
         )
         return await proc.wait() == 0
 
-    async def start(self, target: TmuxTarget, cwd: str, argv: list[str]) -> None:
+    async def start(
+        self,
+        target: TmuxTarget,
+        cwd: str,
+        argv: list[str],
+        *,
+        env: dict[str, str] | None = None,
+    ) -> None:
         if await self.exists(target.session):
             raise TmuxError(f"tmux session already exists: {target.session}")
         command = " ".join(shlex.quote(part) for part in argv)
-        proc = await asyncio.create_subprocess_exec(
+        tmux_args = [
             "tmux",
             "new-session",
             "-d",
@@ -45,7 +52,12 @@ class Tmux:
             target.window,
             "-c",
             cwd,
-            command,
+        ]
+        for key, value in (env or {}).items():
+            tmux_args += ["-e", f"{key}={value}"]
+        tmux_args.append(command)
+        proc = await asyncio.create_subprocess_exec(
+            *tmux_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

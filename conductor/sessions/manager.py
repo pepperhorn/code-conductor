@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from dataclasses import dataclass
@@ -41,6 +42,7 @@ class SessionManager:
         session_id = str(uuid.uuid4())
         bot_slot_name = None
         bot_token = None
+        launch_env: dict[str, str] = {}
         degraded_reason = None
         effective_data_plane = data_plane
 
@@ -57,6 +59,13 @@ class SessionManager:
             else:
                 bot_slot_name = slot.name
                 bot_token = slot.token
+                launch_env.update(
+                    _telegram_slot_env(
+                        slot.name,
+                        slot.token,
+                        self.config.telegram.allowed_chat_ids,
+                    )
+                )
 
         if bypass:
             adapter.settings_bypass_patch(cwd)
@@ -72,6 +81,7 @@ class SessionManager:
             if bot_slot_name:
                 await self.bot_pool.release(bot_slot_name)
                 bot_slot_name = None
+                launch_env = {}
             effective_data_plane = "app" if cli == "claude" else "tmux"
             degraded_reason = str(exc)
             argv = adapter.build_launch_cmd(
@@ -82,7 +92,7 @@ class SessionManager:
             )
 
         target = TmuxTarget(session=_tmux_session_name(cli, cwd, session_id))
-        await self.tmux.start(target, str(cwd), argv)
+        await self.tmux.start(target, str(cwd), argv, env=launch_env)
         record = SessionRecord(
             id=session_id,
             cli=cli,
@@ -133,3 +143,33 @@ class SessionManager:
 def _tmux_session_name(cli: str, cwd: Path, session_id: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", cwd.name).strip("-") or "root"
     return f"conductor-{cli}-{slug}-{session_id[:8]}"
+
+
+def _telegram_slot_env(
+    slot_name: str,
+    token: str,
+    allowed_chat_ids: frozenset[int],
+) -> dict[str, str]:
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", slot_name).strip("-") or "slot"
+    state_dir = Path.home() / ".claude" / "channels" / f"telegram-{safe_name}"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    access_path = state_dir / "access.json"
+    if not access_path.exists():
+        access_path.write_text(
+            json.dumps(
+                {
+                    "dmPolicy": "allowlist",
+                    "allowFrom": [str(chat_id) for chat_id in sorted(allowed_chat_ids)],
+                    "groups": {},
+                    "pending": {},
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        access_path.chmod(0o600)
+    return {
+        "TELEGRAM_BOT_TOKEN": token,
+        "TELEGRAM_STATE_DIR": str(state_dir),
+    }
