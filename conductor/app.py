@@ -4,6 +4,7 @@ import asyncio
 import logging
 from pathlib import Path
 
+from conductor.bridges.codex_telegram import CodexTelegramBridge
 from conductor.config import AppConfig
 from conductor.sessions.manager import SessionManager
 from conductor.sessions.reaper import Reaper
@@ -26,15 +27,18 @@ async def run_app(config: AppConfig) -> None:
     await manager.reconcile()
     telegram_app = build_application(config, registry, manager)
     reaper = Reaper(config, registry, manager)
+    codex_bridge = CodexTelegramBridge(config, registry)
     stop = asyncio.Event()
     async with telegram_app:
         await telegram_app.start()
         await telegram_app.updater.start_polling()
         reaper_task = asyncio.create_task(reaper.run(stop))
+        bridge_task = asyncio.create_task(codex_bridge.run(stop))
         try:
             await stop.wait()
         finally:
             stop.set()
             reaper_task.cancel()
+            bridge_task.cancel()
             await telegram_app.updater.stop()
             await telegram_app.stop()

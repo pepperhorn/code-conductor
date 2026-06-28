@@ -52,7 +52,12 @@ def cli_keyboard() -> InlineKeyboardMarkup:
 def data_plane_keyboard(cli: str) -> InlineKeyboardMarkup:
     if cli == "codex":
         return InlineKeyboardMarkup(
-            [[InlineKeyboardButton("tmux", callback_data=f"start:{cli}:tmux")]]
+            [
+                [
+                    InlineKeyboardButton("tmux", callback_data=f"start:{cli}:tmux"),
+                    InlineKeyboardButton("telegram", callback_data=f"start:{cli}:telegram"),
+                ]
+            ]
         )
     return InlineKeyboardMarkup(
         [

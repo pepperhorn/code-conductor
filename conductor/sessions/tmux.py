@@ -103,3 +103,27 @@ class Tmux:
             stderr=asyncio.subprocess.PIPE,
         )
         await proc.communicate()
+
+    async def send_text(self, target: str, text: str) -> None:
+        proc = await asyncio.create_subprocess_exec(
+            "tmux",
+            "set-buffer",
+            "-b",
+            "conductor-bridge",
+            text,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+        proc = await asyncio.create_subprocess_exec(
+            "tmux",
+            "paste-buffer",
+            "-b",
+            "conductor-bridge",
+            "-t",
+            target,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+        await self.send_enter(target)
