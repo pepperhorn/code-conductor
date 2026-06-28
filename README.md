@@ -6,16 +6,36 @@ The conductor is intended to run as a personal WSL service. It starts interactiv
 
 ## Current Status
 
-This repository currently contains the implementation specification and build prompts:
+This repository contains a working v1 scaffold plus the implementation specification and build prompts:
 
 - `plan.md`: architecture and product spec.
 - `IMPLEMENTATION_PLAN.md`: phased build plan.
 - `prompts/`: CLI-ready prompts for Claude Code and Codex implementers.
+- `conductor/`: Python control-plane package.
+- `deploy/`: WSL systemd deployment files.
 
 ## Key Local Settings
 
 - `CONDUCTOR_PROJECT_ROOT`: project discovery root. On the target box this is `/home/shaun`.
 - `CONDUCTOR_CHANNEL_SLOTS`: Telegram session-bot pool size. Defaults to `5`.
+
+## Development
+
+```bash
+uv venv --python /home/shaun/.local/bin/python3.11 .venv
+uv pip install -e '.[dev]'
+.venv/bin/python -m pytest
+.venv/bin/ruff check conductor tests
+```
+
+Run locally:
+
+```bash
+cp config.example.toml config.toml
+chmod 600 config.toml
+CONDUCTOR_PROJECT_ROOT=/home/shaun CONDUCTOR_CHANNEL_SLOTS=5 \
+  .venv/bin/python -m conductor --config config.toml
+```
 
 ## Non-Goals
 

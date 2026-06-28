@@ -1,0 +1,16 @@
+[Unit]
+Description=CLI Session Conductor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/shaun/conductor
+Environment=CONDUCTOR_PROJECT_ROOT=/home/shaun
+Environment=CONDUCTOR_CHANNEL_SLOTS=5
+ExecStart=/home/shaun/conductor/.venv/bin/python -m conductor --config /home/shaun/conductor/config.toml
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
