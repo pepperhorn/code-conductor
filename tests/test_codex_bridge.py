@@ -73,3 +73,10 @@ def test_attachment_prompt_includes_path_and_caption() -> None:
 def test_safe_filename_strips_unsafe_chars() -> None:
     assert _safe_filename("../../bad file.pdf") == "bad-file.pdf"
     assert _safe_filename("!!!") == "attachment"
+
+
+def test_closed_session_message_copy_is_clear() -> None:
+    text = "This Codex slot session is closed. Start a new session from @phconductorbot."
+
+    assert "closed" in text
+    assert "@phconductorbot" in text

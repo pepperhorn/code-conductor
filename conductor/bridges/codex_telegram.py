@@ -124,6 +124,19 @@ class CodexTelegramBridge:
             return
         if chat.id not in self.config.telegram.allowed_chat_ids:
             return
+        live_session = await self.registry.get_session(session.id)
+        if (
+            live_session is None
+            or live_session.status == "dead"
+            or not await self.tmux.exists(session.tmux_target)
+        ):
+            await message.reply_text(
+                "This Codex slot session is closed. Start a new session from @phconductorbot."
+            )
+            await self.registry.release_session_slot(session.id)
+            await self.registry.update_session_status(session.id, "dead")
+            return
+        session = live_session
         text = (message.text or message.caption or "").strip()
         attachment = await self._download_attachment(bot, session, slot, update)
         if attachment:
