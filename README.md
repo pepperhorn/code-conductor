@@ -19,6 +19,10 @@ This repository contains a working v1 scaffold plus the implementation specifica
 - `CONDUCTOR_PROJECT_ROOT`: project discovery root. On the target box this is `/home/shaun`.
 - `CONDUCTOR_CHANNEL_SLOTS`: Telegram session-bot pool size. Defaults to `5`.
 
+## Customization
+
+Session status/footer text is intended to be configurable in `config.toml` through `[session_footer]`. Footers can include fields such as CLI, model, project folder, context remaining, session id, context limit, data plane, and bot slot. Footer rendering should degrade cleanly when model/context metadata is unavailable.
+
 ## Development
 
 ```bash

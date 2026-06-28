@@ -173,6 +173,7 @@ Output rules:
 
 - Telegram messages over 4096 chars must be paginated or sent as a file.
 - Status cards should be compact: cli, cwd, uptime, idle, data plane, bot slot.
+- Add reusable footer formatting after the core message flow is stable.
 
 Deliverable: handler tests for allowlist, command routing, and callback state.
 
@@ -191,6 +192,19 @@ Implement the minimum v1 monitor.
 Defer context threshold nudges to v2 unless transcript usage parsing is already verified and cheap.
 
 Deliverable: reaper tests using fake sessions and fake clocks.
+
+## Phase 8.5: Configurable Session Footers
+
+Add this after the core message flow is stable.
+
+- Add `[session_footer]` config with `enabled` and `template`.
+- Support placeholders: `{cli}`, `{model}`, `{cwd}`, `{context_remaining}`, `{session_id}`, `{context_limit}`, `{data_plane}`, `{bot_slot}`.
+- Render missing values as `unknown` or `-`.
+- Keep footer rendering non-fatal; message delivery must continue if a field is unavailable.
+- Use the footer on conductor-originated session messages first: start result, `/sessions`, `/status`, idle warnings, reaper notifications.
+- Do not assume the conductor can modify official Claude Telegram channel messages. If the data plane is sent directly by Claude's plugin, footer support applies only to conductor messages until a conductor-managed bridge exists.
+
+Deliverable: formatter tests covering complete metadata, missing metadata, disabled footers, and unknown template placeholders.
 
 ## Phase 9: Deployment
 

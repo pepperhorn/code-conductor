@@ -26,6 +26,7 @@ Build v1 only unless a dependency forces a small supporting piece:
 - Bot-slot leasing for `CONDUCTOR_CHANNEL_SLOTS` Telegram session bots, default `5`, with graceful app-only fallback when no slot is available.
 - Transcript and idle monitoring enough for v1 liveness and idle reaping.
 - Systemd unit and WSL setup docs.
+- Configurable session footer support can be implemented after v1 message flow is stable; keep it template-driven for public-repo customization.
 
 Implementation constraints:
 
@@ -33,6 +34,7 @@ Implementation constraints:
 - Use `python-telegram-bot` v21+ async APIs, `aiosqlite`, and either `libtmux` or subprocess calls to `tmux`.
 - Resolve the project picker root from the env var named by `[project].root_env`; fail fast if `CONDUCTOR_PROJECT_ROOT` is missing, empty, or resolves to an invalid path.
 - Resolve channel-slot count from the env var named by `[channels].slot_count_env`; default to `5` if unset, fail fast if not a positive integer, and validate the `[[bot_slots]]` entries match the resolved count.
+- Session context footers should be reusable and optional. They can include cli, model, cwd, context remaining, session id, context limit, data plane, and bot slot when known. Do not let missing model/context data block message delivery.
 - Do not implement a web server.
 - Do not make the conductor a message relay.
 - Do not start Claude in non-interactive/print mode.

@@ -77,6 +77,10 @@ bypass_permissions   = true                        # default ON (implemented via
 idle_warning_minutes = 25
 idle_timeout_minutes = 30
 
+[session_footer]
+enabled = true                                     # append compact session context to conductor messages
+template = "cli:{cli} model:{model} cwd:{cwd} ctx:{context_remaining} session:{session_id} limit:{context_limit}"
+
 [remote_control]
 auto_enable = true                                 # conductor verifies the global CC setting is on
 
@@ -99,6 +103,8 @@ token = "PASTE_BOT_5_TOKEN"
 ```
 
 `config.toml` is chmod 600 and gitignored. Provide `config.example.toml` with placeholders. `CONDUCTOR_PROJECT_ROOT` must be set in the service environment; fail fast if it is missing, empty, or resolves to an invalid path. On this box, set `CONDUCTOR_PROJECT_ROOT=/home/shaun`. `CONDUCTOR_CHANNEL_SLOTS` controls how many Telegram session-bot channels to manage and defaults to `5` when unset; fail fast if it is not a positive integer or if the configured `[[bot_slots]]` count does not match the resolved slot count.
+
+`[session_footer]` is a public-repo customization surface. Keep it optional and template-driven so private installs can choose what context appears under conductor/session status messages. Supported placeholders should include at least `{cli}`, `{model}`, `{cwd}`, `{context_remaining}`, `{session_id}`, `{context_limit}`, `{data_plane}`, and `{bot_slot}`. Unknown values render as `unknown` or `-`; footer rendering must not block message delivery.
 
 ---
 
@@ -131,6 +137,7 @@ Walk `PROJECT_ROOT` to `max_depth` (dirs + one subdir level). Reject any path co
 - **Graceful degrade:** if no slot is free, start the session **app-only** (Remote Control) and reply: "No Telegram slots free — reachable in the app; assign a slot later with `/assign`." Do **not** block the start.
 - **Manual control:** `/slots` shows allocation; `/assign <session_id> <slot_name>` moves/attaches a slot; `/release <slot_name>` frees one.
 - **Release on stop/reap.**
+- **Message footer:** conductor-originated session messages may include the configurable `[session_footer]` context footer. If the official Claude Telegram channel sends session messages directly, the conductor cannot mutate those messages; in that case footer support applies to conductor messages and any future conductor-managed bridge.
 
 > Note: the official Telegram channel plugin is single-session per bot (two pollers on one token → 409). Distinct tokens are required for concurrent telegram sessions. How a distinct token is injected per session is the one real integration unknown — see §10.
 
@@ -341,7 +348,7 @@ WantedBy=default.target
 
 **v1 (P0 — ship first):** control bot + chat allowlist; numbered project picker; Claude adapter (interactive + tmux + RC auto-enable + bypass allow-list); SQLite registry + startup reconcile; `/sessions` `/kill` `/killall`; configurable bot slots with auto-lease, graceful degrade, `/slots`; transcript-tail liveness + idle reaper.
 
-**v2 (P1):** context-% thresholds + nudges with reset; resume-on-death; `/assign` `/release` `/status` cards; audit; per-session topic routing niceties.
+**v2 (P1):** context-% thresholds + nudges with reset; resume-on-death; `/assign` `/release` `/status` cards; audit; customizable session footer formatter; per-session topic routing niceties.
 
 **v3 (P2):** Codex adapter (hand `adapters/codex.py` to a Codex CLI); voice notes → transcription → prompt (Telegram-only advantage); additional CLIs via the same ABC.
 
