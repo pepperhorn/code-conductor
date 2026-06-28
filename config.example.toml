@@ -22,6 +22,10 @@ auto_enable = true
 enabled = true
 template = "cli:{cli} model:{model} cwd:{cwd} ctx:{context_remaining} session:{session_id} limit:{context_limit} data:{data_plane} slot:{bot_slot}"
 
+[trust]
+auto_confirm_project_trust = true
+trusted_root_only = true
+
 [[bot_slots]]
 name = "session-bot-1"
 token = "PASTE_BOT_1_TOKEN"

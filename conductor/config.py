@@ -51,6 +51,12 @@ class SessionFooterConfig:
 
 
 @dataclass(frozen=True)
+class TrustConfig:
+    auto_confirm_project_trust: bool
+    trusted_root_only: bool
+
+
+@dataclass(frozen=True)
 class BotSlotConfig:
     name: str
     token: str
@@ -65,6 +71,7 @@ class AppConfig:
     defaults: DefaultsConfig
     remote_control: RemoteControlConfig
     session_footer: SessionFooterConfig
+    trust: TrustConfig
     bot_slots: tuple[BotSlotConfig, ...]
 
 
@@ -88,6 +95,9 @@ def load_config(
     footer_data = data.get("session_footer", {})
     if footer_data and not isinstance(footer_data, dict):
         raise ConfigError("[session_footer] must be a table")
+    trust_data = data.get("trust", {})
+    if trust_data and not isinstance(trust_data, dict):
+        raise ConfigError("[trust] must be a table")
     slot_data = data.get("bot_slots", [])
     if not isinstance(slot_data, list):
         raise ConfigError("[[bot_slots]] must be an array of tables")
@@ -159,6 +169,14 @@ def load_config(
                 "cli:{cli} model:{model} cwd:{cwd} ctx:{context_remaining} "
                 "session:{session_id} limit:{context_limit} data:{data_plane} slot:{bot_slot}",
             ),
+        ),
+        trust=TrustConfig(
+            auto_confirm_project_trust=_optional_bool(
+                trust_data,
+                "auto_confirm_project_trust",
+                True,
+            ),
+            trusted_root_only=_optional_bool(trust_data, "trusted_root_only", True),
         ),
         bot_slots=bot_slots,
     )

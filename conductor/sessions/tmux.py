@@ -91,3 +91,15 @@ class Tmux:
         )
         stdout, _stderr = await proc.communicate()
         return stdout.decode(errors="ignore")
+
+    async def send_enter(self, target: str) -> None:
+        proc = await asyncio.create_subprocess_exec(
+            "tmux",
+            "send-keys",
+            "-t",
+            target,
+            "Enter",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()

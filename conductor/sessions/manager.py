@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -93,6 +94,7 @@ class SessionManager:
 
         target = TmuxTarget(session=_tmux_session_name(cli, cwd, session_id))
         await self.tmux.start(target, str(cwd), argv, env=launch_env)
+        await self._auto_confirm_trust_prompt(target.value, cwd)
         record = SessionRecord(
             id=session_id,
             cli=cli,
@@ -126,6 +128,18 @@ class SessionManager:
                 await self.registry.update_session_status(session.id, "dead")
                 await self.bot_pool.release_for_session(session.id)
 
+    async def _auto_confirm_trust_prompt(self, target: str, cwd: Path) -> None:
+        if not self.config.trust.auto_confirm_project_trust:
+            return
+        if self.config.trust.trusted_root_only:
+            self._validate_cwd(cwd)
+        for _ in range(10):
+            await asyncio.sleep(0.5)
+            pane = await self.tmux.capture(target)
+            if _is_trust_prompt(pane):
+                await self.tmux.send_enter(target)
+                return
+
     def _validate_cwd(self, cwd: Path) -> None:
         root = self.config.project.root
         if ".." in cwd.parts:
@@ -143,6 +157,15 @@ class SessionManager:
 def _tmux_session_name(cli: str, cwd: Path, session_id: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", cwd.name).strip("-") or "root"
     return f"conductor-{cli}-{slug}-{session_id[:8]}"
+
+
+def _is_trust_prompt(pane: str) -> bool:
+    prompts = (
+        "Yes, I trust this folder",
+        "Do you trust the contents of this directory?",
+        "Is this a project you created or one you trust?",
+    )
+    return any(prompt in pane for prompt in prompts)
 
 
 def _telegram_slot_env(
