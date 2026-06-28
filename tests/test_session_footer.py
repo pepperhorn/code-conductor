@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from conductor.config import SessionFooterConfig
-from conductor.session_footer import render_session_footer
+from conductor.session_footer import SessionStats, render_session_footer
 from conductor.sessions.registry import SessionRecord
 
 
@@ -25,13 +25,14 @@ def test_render_session_footer_uses_known_fields() -> None:
             template="cli:{cli} cwd:{cwd} session:{session_id} slot:{bot_slot} model:{model}",
         ),
         session,
+        SessionStats(model="gpt-5.5 medium"),
     )
 
     assert "cli:claude" in footer
     assert "cwd:/home/shaun/crf-framework" in footer
     assert "session:8d3df576" in footer
     assert "slot:phcodeslot1_bot" in footer
-    assert "model:unknown" in footer
+    assert "model:gpt-5.5 medium" in footer
 
 
 def test_render_session_footer_can_be_disabled() -> None:

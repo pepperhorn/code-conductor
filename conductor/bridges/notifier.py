@@ -4,7 +4,7 @@ from telegram import Bot
 from telegram.error import TelegramError
 
 from conductor.config import AppConfig
-from conductor.session_footer import render_session_footer
+from conductor.session_footer import SessionStats, render_session_footer
 from conductor.sessions.registry import SessionRecord
 
 
@@ -19,11 +19,12 @@ class ControlNotifier:
         *,
         title: str,
         detail: str = "",
+        stats: SessionStats | None = None,
     ) -> None:
         text = title
         if detail:
             text += f"\n{detail}"
-        text += render_session_footer(self.config.session_footer, session)
+        text += render_session_footer(self.config.session_footer, session, stats)
         for chat_id in self.config.telegram.allowed_chat_ids:
             try:
                 await self.bot.send_message(chat_id=chat_id, text=text)

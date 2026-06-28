@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 
 from telegram import Bot, Update
@@ -9,6 +10,7 @@ from telegram.error import NetworkError, TelegramError
 
 from conductor.bridges.notifier import ControlNotifier
 from conductor.config import AppConfig
+from conductor.session_footer import SessionStats
 from conductor.sessions.registry import BotSlotRecord, Registry, SessionRecord
 from conductor.sessions.tmux import Tmux
 
@@ -131,12 +133,13 @@ class CodexTelegramBridge:
             await message.reply_text(_clip(await self.tmux.capture(session.tmux_target)))
             return
         await message.reply_text("Sending to Codex...")
+        before = await self.tmux.capture(session.tmux_target)
         await self.notifier.slot_activity(
             session,
             title=f"slot request: @{slot.name}",
             detail="Forwarded message to Codex.",
+            stats=parse_codex_stats(before),
         )
-        before = await self.tmux.capture(session.tmux_target)
         await self.tmux.send_text(session.tmux_target, text)
         pane = await self._wait_for_codex_response(session.tmux_target, before)
         response = _clip(pane)
@@ -145,6 +148,7 @@ class CodexTelegramBridge:
             session,
             title=f"slot response: @{slot.name}",
             detail="Codex response sent to slot bot.",
+            stats=parse_codex_stats(pane),
         )
 
     async def _wait_for_codex_response(
@@ -188,3 +192,36 @@ def _clip(text: str, limit: int = 3900) -> str:
 def _codex_is_working(pane: str) -> bool:
     tail = "\n".join(pane.splitlines()[-12:])
     return "Working (" in tail or "esc to interrupt" in tail
+
+
+def parse_codex_stats(pane: str) -> SessionStats:
+    for line in reversed(pane.splitlines()):
+        if "Context " not in line:
+            continue
+        model = _parse_codex_model(line)
+        remaining = _regex_group(r"Context\s+(\d+%\s+left)", line)
+        used = _regex_group(r"Context\s+\d+%\s+left\s+·\s+Context\s+(\d+%\s+used)", line)
+        limit = _regex_group(r"·\s*([^·]*?5h[^·]*)", line)
+        return SessionStats(
+            model=model or "unknown",
+            context_remaining=remaining or "unknown",
+            context_used=used or "unknown",
+            context_limit=limit or "unknown",
+        )
+    return SessionStats()
+
+
+def _parse_codex_model(line: str) -> str | None:
+    clean = line.replace("›", "").strip()
+    parts = [part.strip() for part in clean.split("·")]
+    if not parts:
+        return None
+    model = parts[0]
+    return model if model else None
+
+
+def _regex_group(pattern: str, text: str) -> str | None:
+    match = re.search(pattern, text)
+    if not match:
+        return None
+    return match.group(1).strip()

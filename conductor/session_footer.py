@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from string import Formatter
 
 from conductor.config import SessionFooterConfig
@@ -8,16 +9,30 @@ from conductor.sessions.registry import SessionRecord
 UNKNOWN = "unknown"
 
 
-def render_session_footer(config: SessionFooterConfig, session: SessionRecord) -> str:
+@dataclass(frozen=True)
+class SessionStats:
+    model: str = UNKNOWN
+    context_remaining: str = UNKNOWN
+    context_limit: str = UNKNOWN
+    context_used: str = UNKNOWN
+
+
+def render_session_footer(
+    config: SessionFooterConfig,
+    session: SessionRecord,
+    stats: SessionStats | None = None,
+) -> str:
     if not config.enabled:
         return ""
+    stats = stats or SessionStats()
     values = {
         "cli": session.cli,
-        "model": UNKNOWN,
+        "model": stats.model,
         "cwd": session.cwd,
-        "context_remaining": UNKNOWN,
+        "context_remaining": stats.context_remaining,
         "session_id": session.id[:8],
-        "context_limit": UNKNOWN,
+        "context_limit": stats.context_limit,
+        "context_used": stats.context_used,
         "data_plane": session.data_plane,
         "bot_slot": session.bot_slot or "-",
     }

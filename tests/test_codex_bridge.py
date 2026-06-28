@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from conductor.bridges.codex_telegram import _clip, _codex_is_working, _status_text
+from conductor.bridges.codex_telegram import (
+    _clip,
+    _codex_is_working,
+    _status_text,
+    parse_codex_stats,
+)
 from conductor.sessions.registry import BotSlotRecord, SessionRecord
 
 
@@ -42,3 +47,15 @@ def test_bridge_control_details_are_metadata_only() -> None:
 
     assert "Any wip" not in request_detail
     assert "Ran " not in response_detail
+
+
+def test_parse_codex_stats_from_status_line() -> None:
+    stats = parse_codex_stats(
+        "  gpt-5.5 medium · ~/brother · never · Context 91% left · "
+        "Context 9% used · 5h"
+    )
+
+    assert stats.model == "gpt-5.5 medium"
+    assert stats.context_remaining == "91% left"
+    assert stats.context_used == "9% used"
+    assert stats.context_limit == "5h"
