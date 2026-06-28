@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "code-conductor"
+version = "0.1.0"
+description = "Local Telegram control plane for Claude Code and Codex CLI sessions"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "aiosqlite>=0.20",
+  "python-telegram-bot>=21",
+  "watchfiles>=0.24",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
+]
+
+[project.scripts]
+conductor = "conductor.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["conductor"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

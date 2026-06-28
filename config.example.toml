@@ -1,0 +1,39 @@
+[telegram]
+control_bot_token = "PASTE_CONDUCTOR_BOT_TOKEN"
+allowed_chat_ids = [123456789]
+
+[project]
+root_env = "CONDUCTOR_PROJECT_ROOT"
+max_depth = 2
+
+[channels]
+slot_count_env = "CONDUCTOR_CHANNEL_SLOTS"
+
+[defaults]
+cli = "claude"
+bypass_permissions = true
+idle_warning_minutes = 25
+idle_timeout_minutes = 30
+
+[remote_control]
+auto_enable = true
+
+[[bot_slots]]
+name = "session-bot-1"
+token = "PASTE_BOT_1_TOKEN"
+
+[[bot_slots]]
+name = "session-bot-2"
+token = "PASTE_BOT_2_TOKEN"
+
+[[bot_slots]]
+name = "session-bot-3"
+token = "PASTE_BOT_3_TOKEN"
+
+[[bot_slots]]
+name = "session-bot-4"
+token = "PASTE_BOT_4_TOKEN"
+
+[[bot_slots]]
+name = "session-bot-5"
+token = "PASTE_BOT_5_TOKEN"
