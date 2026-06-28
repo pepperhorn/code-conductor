@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from telegram import Bot, Update
+from telegram.constants import ChatAction
 from telegram.error import NetworkError, TelegramError
 
 from conductor.bridges.notifier import ControlNotifier
@@ -159,7 +160,15 @@ class CodexTelegramBridge:
             stats=parse_codex_stats(before),
         )
         await self.tmux.send_text(session.tmux_target, text)
-        pane = await self._wait_for_codex_response(session.tmux_target, before)
+        typing_stop = asyncio.Event()
+        typing_task = asyncio.create_task(
+            self._send_typing_until(bot, chat.id, typing_stop)
+        )
+        try:
+            pane = await self._wait_for_codex_response(session.tmux_target, before)
+        finally:
+            typing_stop.set()
+            await asyncio.gather(typing_task, return_exceptions=True)
         response = _clip(pane)
         await bot.send_message(chat_id=chat.id, text=response)
         await self.notifier.slot_activity(
@@ -231,6 +240,22 @@ class CodexTelegramBridge:
             if pane != before and not _codex_is_working(pane):
                 return pane
         return last
+
+    async def _send_typing_until(
+        self,
+        bot: Bot,
+        chat_id: int,
+        stop: asyncio.Event,
+    ) -> None:
+        while not stop.is_set():
+            try:
+                await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+            except TelegramError:
+                return
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=4)
+            except TimeoutError:
+                pass
 
 
 def _status_text(session: SessionRecord, slot: BotSlotRecord) -> str:

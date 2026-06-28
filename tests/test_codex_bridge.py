@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+
+import pytest
+from telegram.constants import ChatAction
+
 from conductor.bridges.codex_telegram import (
+    CodexTelegramBridge,
     _attachment_prompt,
     _clip,
     _codex_is_working,
@@ -80,3 +86,23 @@ def test_closed_session_message_copy_is_clear() -> None:
 
     assert "closed" in text
     assert "@phconductorbot" in text
+
+
+@pytest.mark.asyncio
+async def test_typing_indicator_sends_until_stopped() -> None:
+    stop = asyncio.Event()
+
+    class FakeBot:
+        def __init__(self) -> None:
+            self.actions: list[tuple[int, str]] = []
+
+        async def send_chat_action(self, chat_id: int, action: str) -> None:
+            self.actions.append((chat_id, action))
+            stop.set()
+
+    bot = FakeBot()
+    bridge = CodexTelegramBridge.__new__(CodexTelegramBridge)
+
+    await bridge._send_typing_until(bot, 123, stop)
+
+    assert bot.actions == [(123, ChatAction.TYPING)]
