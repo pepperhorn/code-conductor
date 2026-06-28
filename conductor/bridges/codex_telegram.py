@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from telegram import Bot, Update
 from telegram.error import NetworkError, TelegramError
 
+from conductor.bridges.notifier import ControlNotifier
 from conductor.config import AppConfig
 from conductor.sessions.registry import BotSlotRecord, Registry, SessionRecord
 from conductor.sessions.tmux import Tmux
@@ -26,12 +27,14 @@ class CodexTelegramBridge:
         self,
         config: AppConfig,
         registry: Registry,
+        notifier: ControlNotifier,
         tmux: Tmux | None = None,
         *,
         scan_interval_seconds: int = 5,
     ):
         self.config = config
         self.registry = registry
+        self.notifier = notifier
         self.tmux = tmux or Tmux()
         self.scan_interval_seconds = scan_interval_seconds
         self.tasks: dict[str, BridgeTask] = {}
@@ -128,10 +131,21 @@ class CodexTelegramBridge:
             await message.reply_text(_clip(await self.tmux.capture(session.tmux_target)))
             return
         await message.reply_text("Sending to Codex...")
+        await self.notifier.slot_activity(
+            session,
+            title=f"slot request: @{slot.name}",
+            detail=_clip(text, limit=500),
+        )
         await self.tmux.send_text(session.tmux_target, text)
         await asyncio.sleep(2)
         pane = await self.tmux.capture(session.tmux_target)
-        await bot.send_message(chat_id=chat.id, text=_clip(pane))
+        response = _clip(pane)
+        await bot.send_message(chat_id=chat.id, text=response)
+        await self.notifier.slot_activity(
+            session,
+            title=f"slot response: @{slot.name}",
+            detail=_clip(response, limit=500),
+        )
 
 
 def _status_text(session: SessionRecord, slot: BotSlotRecord) -> str:

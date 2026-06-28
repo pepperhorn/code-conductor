@@ -23,6 +23,17 @@ from conductor.telegram.keyboards import cli_keyboard, data_plane_keyboard, proj
 
 log = logging.getLogger(__name__)
 
+COMMANDS = (
+    ("start", "Check that Conductor is reachable"),
+    ("help", "Show commands and descriptions"),
+    ("new", "Start a new Claude or Codex session"),
+    ("projects", "Open the project picker"),
+    ("sessions", "List known sessions"),
+    ("slots", "List Telegram slot bot leases"),
+    ("kill", "Stop one session: /kill <session_id>"),
+    ("killall", "Stop all live sessions"),
+)
+
 
 @dataclass
 class BotState:
@@ -70,14 +81,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state = _state(context)
     await state.registry.audit(_chat_id(update), "/help")
-    await update.effective_message.reply_text(
-        "/new - start a session\n"
-        "/projects - list project picker\n"
-        "/sessions - list sessions\n"
-        "/slots - list Telegram channel slots\n"
-        "/kill <id> - stop a session\n"
-        "/killall - stop all live sessions"
-    )
+    lines = ["Available commands:"]
+    lines.extend(f"/{name} - {description}" for name, description in COMMANDS)
+    await update.effective_message.reply_text("\n".join(lines))
 
 
 async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
