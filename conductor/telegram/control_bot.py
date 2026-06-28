@@ -56,6 +56,7 @@ def build_application(
     app.add_handler(CommandHandler("kill", _allowlisted(kill_command)))
     app.add_handler(CommandHandler("killall", _allowlisted(killall_command)))
     app.add_handler(CallbackQueryHandler(_allowlisted(callback_query)))
+    app.add_error_handler(error_handler)
     return app
 
 
@@ -194,12 +195,16 @@ async def callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if state.selected_project is None:
             await query.edit_message_text("No project selected. Use /new to start again.")
             return
-        result = await state.manager.start(
-            cwd=state.selected_project,
-            cli=cli,
-            data_plane=data_plane,
-            bypass=state.config.defaults.bypass_permissions,
-        )
+        try:
+            result = await state.manager.start(
+                cwd=state.selected_project,
+                cli=cli,
+                data_plane=data_plane,
+                bypass=state.config.defaults.bypass_permissions,
+            )
+        except ValueError as exc:
+            await query.edit_message_text(str(exc))
+            return
         text = _start_message(
             result.session.id,
             Path(result.session.cwd),
@@ -263,3 +268,7 @@ def _chat_id(update: Update) -> int:
 async def _reply_chunks(update: Update, text: str, *, parse_mode: str | None = None) -> None:
     for start in range(0, len(text), 3900):
         await update.effective_message.reply_text(text[start : start + 3900], parse_mode=parse_mode)
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    log.exception("telegram update failed", exc_info=context.error)
