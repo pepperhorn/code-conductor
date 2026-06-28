@@ -84,25 +84,10 @@ class ClaudeCodeAdapter(CLIAdapter):
         return True
 
     def settings_bypass_patch(self, cwd: Path) -> None:
-        settings_dir = cwd / ".claude"
-        settings_dir.mkdir(exist_ok=True)
-        settings_path = settings_dir / "settings.local.json"
-        data: dict[str, Any] = {}
-        if settings_path.exists():
-            try:
-                loaded = json.loads(settings_path.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    data = loaded
-            except json.JSONDecodeError:
-                data = {}
-        data.setdefault("permissions", {})
-        permissions = data["permissions"]
-        if isinstance(permissions, dict):
-            permissions["allow"] = ["*"]
-        settings_path.write_text(
-            json.dumps(data, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        # Claude Code 2.1.195 accepts --permission-mode bypassPermissions for
+        # interactive Remote Control sessions. Do not write a wildcard allow rule:
+        # this version rejects permissions.allow=["*"] at startup.
+        return None
 
 
 def _extract_usage(event: dict[str, Any]) -> Usage | None:
