@@ -134,7 +134,7 @@ class CodexTelegramBridge:
         await self.notifier.slot_activity(
             session,
             title=f"slot request: @{slot.name}",
-            detail=_clip(text, limit=500),
+            detail="Forwarded message to Codex.",
         )
         before = await self.tmux.capture(session.tmux_target)
         await self.tmux.send_text(session.tmux_target, text)
@@ -144,7 +144,7 @@ class CodexTelegramBridge:
         await self.notifier.slot_activity(
             session,
             title=f"slot response: @{slot.name}",
-            detail=_clip(response, limit=500),
+            detail="Codex response sent to slot bot.",
         )
 
     async def _wait_for_codex_response(

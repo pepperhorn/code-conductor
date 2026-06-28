@@ -34,3 +34,11 @@ def test_clip_returns_tail() -> None:
 def test_codex_working_detection_checks_tail() -> None:
     assert _codex_is_working("hello\n• Working (4s • esc to interrupt)")
     assert not _codex_is_working("done\n› next prompt")
+
+
+def test_bridge_control_details_are_metadata_only() -> None:
+    request_detail = "Forwarded message to Codex."
+    response_detail = "Codex response sent to slot bot."
+
+    assert "Any wip" not in request_detail
+    assert "Ran " not in response_detail
