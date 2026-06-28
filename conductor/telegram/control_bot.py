@@ -16,8 +16,9 @@ from telegram.ext import (
 
 from conductor.config import AppConfig
 from conductor.projects import ProjectEntry, direct_child_projects
+from conductor.session_footer import render_session_footer
 from conductor.sessions.manager import SessionManager
-from conductor.sessions.registry import Registry
+from conductor.sessions.registry import Registry, SessionRecord
 from conductor.telegram.keyboards import cli_keyboard, data_plane_keyboard, project_keyboard
 
 log = logging.getLogger(__name__)
@@ -205,11 +206,8 @@ async def callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except ValueError as exc:
             await query.edit_message_text(str(exc))
             return
-        text = _start_message(
-            result.session.id,
-            Path(result.session.cwd),
-            result.session.data_plane,
-        )
+        text = _start_message(result.session)
+        text += render_session_footer(state.config.session_footer, result.session)
         if result.degraded_reason:
             text += f"\n\n{result.degraded_reason}"
         await query.edit_message_text(text)
@@ -232,14 +230,29 @@ def _browser_keyboard(state: BotState, *, page: int = 0):
     )
 
 
-def _start_message(session_id: str, cwd: Path, data_plane: str) -> str:
-    if data_plane == "tmux":
-        return f"Started {session_id[:8]} in tmux for {cwd}."
-    if data_plane == "telegram":
-        return f"Started {session_id[:8]} for {cwd}. DM the leased session bot to pair."
-    if data_plane == "both":
-        return f"Started {session_id[:8]} for {cwd}. It should appear in the app and session bot."
-    return f"Started {session_id[:8]} for {cwd}. It should appear in Claude Code Remote Control."
+def _start_message(session: SessionRecord) -> str:
+    cwd = Path(session.cwd)
+    if session.data_plane == "tmux":
+        return f"Started {session.id[:8]} in tmux for {cwd}."
+    if session.data_plane == "telegram":
+        return (
+            f"Started {session.id[:8]} for {cwd}.\n"
+            f"DM { _slot_link(session.bot_slot) } and send /status."
+        )
+    if session.data_plane == "both":
+        return (
+            f"Started {session.id[:8]} for {cwd}.\n"
+            "It should appear in Claude Code Remote Control.\n"
+            f"DM { _slot_link(session.bot_slot) } and send /status."
+        )
+    return f"Started {session.id[:8]} for {cwd}. It should appear in Claude Code Remote Control."
+
+
+def _slot_link(bot_slot: str | None) -> str:
+    if not bot_slot:
+        return "the leased session bot"
+    username = bot_slot.removeprefix("@")
+    return f"@{username} https://t.me/{username}"
 
 
 def _allowlisted(handler):

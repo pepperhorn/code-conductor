@@ -18,6 +18,10 @@ idle_timeout_minutes = 30
 [remote_control]
 auto_enable = true
 
+[session_footer]
+enabled = true
+template = "cli:{cli} model:{model} cwd:{cwd} ctx:{context_remaining} session:{session_id} limit:{context_limit} data:{data_plane} slot:{bot_slot}"
+
 [[bot_slots]]
 name = "session-bot-1"
 token = "PASTE_BOT_1_TOKEN"

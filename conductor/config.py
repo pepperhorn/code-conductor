@@ -45,6 +45,12 @@ class RemoteControlConfig:
 
 
 @dataclass(frozen=True)
+class SessionFooterConfig:
+    enabled: bool
+    template: str
+
+
+@dataclass(frozen=True)
 class BotSlotConfig:
     name: str
     token: str
@@ -58,6 +64,7 @@ class AppConfig:
     channels: ChannelsConfig
     defaults: DefaultsConfig
     remote_control: RemoteControlConfig
+    session_footer: SessionFooterConfig
     bot_slots: tuple[BotSlotConfig, ...]
 
 
@@ -78,6 +85,9 @@ def load_config(
     channels_data = _table(data, "channels")
     defaults_data = _table(data, "defaults")
     remote_data = _table(data, "remote_control")
+    footer_data = data.get("session_footer", {})
+    if footer_data and not isinstance(footer_data, dict):
+        raise ConfigError("[session_footer] must be a table")
     slot_data = data.get("bot_slots", [])
     if not isinstance(slot_data, list):
         raise ConfigError("[[bot_slots]] must be an array of tables")
@@ -141,6 +151,15 @@ def load_config(
             idle_timeout_minutes=idle_timeout,
         ),
         remote_control=RemoteControlConfig(auto_enable=_bool(remote_data, "auto_enable")),
+        session_footer=SessionFooterConfig(
+            enabled=_optional_bool(footer_data, "enabled", True),
+            template=_optional_str(
+                footer_data,
+                "template",
+                "cli:{cli} model:{model} cwd:{cwd} ctx:{context_remaining} "
+                "session:{session_id} limit:{context_limit} data:{data_plane} slot:{bot_slot}",
+            ),
+        ),
         bot_slots=bot_slots,
     )
 
@@ -169,6 +188,20 @@ def _bool(data: dict[str, Any], key: str) -> bool:
     value = data.get(key)
     if not isinstance(value, bool):
         raise ConfigError(f"{key} must be a boolean")
+    return value
+
+
+def _optional_bool(data: dict[str, Any], key: str, default: bool) -> bool:
+    value = data.get(key, default)
+    if not isinstance(value, bool):
+        raise ConfigError(f"{key} must be a boolean")
+    return value
+
+
+def _optional_str(data: dict[str, Any], key: str, default: str) -> str:
+    value = data.get(key, default)
+    if not isinstance(value, str):
+        raise ConfigError(f"{key} must be a string")
     return value
 
 
