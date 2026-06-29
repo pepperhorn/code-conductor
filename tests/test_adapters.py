@@ -40,6 +40,13 @@ def test_claude_builds_telegram_channel_command(tmp_path: Path) -> None:
     ]
 
 
+def test_remote_control_capability_contract() -> None:
+    # SessionManager.start degrades data planes off this capability instead of
+    # hardcoding CLI names, so the contract must hold.
+    assert ClaudeCodeAdapter().supports_remote_control() is True
+    assert CodexAdapter().supports_remote_control() is False
+
+
 def test_codex_degrades_to_tmux_style_command(tmp_path: Path) -> None:
     cmd = CodexAdapter().build_launch_cmd(
         tmp_path,

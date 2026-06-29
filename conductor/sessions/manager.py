@@ -47,14 +47,14 @@ class SessionManager:
         degraded_reason = None
         effective_data_plane = data_plane
 
-        if cli == "codex" and data_plane in {"app", "both"}:
+        if not adapter.supports_remote_control() and data_plane in {"app", "both"}:
             effective_data_plane = "telegram" if data_plane == "both" else "tmux"
-            degraded_reason = "Codex app data plane is unsupported; using telegram/tmux."
+            degraded_reason = f"{cli} app data plane is unsupported; using telegram/tmux."
 
         if data_plane in {"telegram", "both"} or effective_data_plane == "telegram":
             slot = await self.bot_pool.lease(session_id)
             if slot is None:
-                effective_data_plane = "app" if cli == "claude" else "tmux"
+                effective_data_plane = "app" if adapter.supports_remote_control() else "tmux"
                 degraded_reason = "No Telegram slots free; started without a slot."
             else:
                 bot_slot_name = slot.name
@@ -83,7 +83,7 @@ class SessionManager:
                 await self.bot_pool.release(bot_slot_name)
                 bot_slot_name = None
                 launch_env = {}
-            effective_data_plane = "app" if cli == "claude" else "tmux"
+            effective_data_plane = "app" if adapter.supports_remote_control() else "tmux"
             degraded_reason = str(exc)
             argv = adapter.build_launch_cmd(
                 cwd,

@@ -22,6 +22,10 @@ class ClaudeCodeAdapter(CLIAdapter):
         if data_plane in {"app", "both"}:
             cmd += ["--remote-control", cwd.name]
         if data_plane in {"telegram", "both"}:
+            # The token itself reaches the telegram plugin via the
+            # TELEGRAM_BOT_TOKEN env var that SessionManager injects into the
+            # tmux session; here bot_token is only a presence guard so we never
+            # launch the telegram plane without a leased slot.
             if not bot_token:
                 raise UnsupportedDataPlane("telegram data plane requires a leased bot token")
             cmd += ["--channels", "plugin:telegram@claude-plugins-official"]
@@ -42,6 +46,10 @@ class ClaudeCodeAdapter(CLIAdapter):
         if data_plane in {"app", "both"}:
             cmd += ["--remote-control", cwd.name]
         if data_plane in {"telegram", "both"}:
+            # The token itself reaches the telegram plugin via the
+            # TELEGRAM_BOT_TOKEN env var that SessionManager injects into the
+            # tmux session; here bot_token is only a presence guard so we never
+            # launch the telegram plane without a leased slot.
             if not bot_token:
                 raise UnsupportedDataPlane("telegram data plane requires a leased bot token")
             cmd += ["--channels", "plugin:telegram@claude-plugins-official"]
