@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -66,9 +67,19 @@ class ClaudeCodeAdapter(CLIAdapter):
         if not base.exists():
             return None
         candidates = list(base.glob(f"**/{session_id}.jsonl"))
-        if candidates:
-            return candidates[0]
-        return None
+        if not candidates:
+            return None
+        # Claude stores each project's transcripts under a directory named after
+        # the cwd path with non-alphanumeric runs replaced by '-'
+        # (e.g. /home/shaun/conductor -> -home-shaun-conductor). Prefer the
+        # match under this cwd's project dir; otherwise fall back to the most
+        # recently modified transcript. Both keep selection deterministic when
+        # the same session id appears under multiple project dirs.
+        expected_dir = re.sub(r"[^A-Za-z0-9]+", "-", str(cwd))
+        for candidate in candidates:
+            if candidate.parent.name == expected_dir:
+                return candidate
+        return max(candidates, key=lambda p: (p.stat().st_mtime, str(p)))
 
     def parse_usage(self, transcript_path: Path) -> Usage | None:
         if not transcript_path.exists():
