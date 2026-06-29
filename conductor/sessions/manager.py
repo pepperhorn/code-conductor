@@ -192,7 +192,7 @@ def _telegram_slot_env(
             encoding="utf-8",
         )
         access_path.chmod(0o600)
-        return {
-            "TELEGRAM_BOT_TOKEN": token,
-            "TELEGRAM_STATE_DIR": str(state_dir),
-        }
+    return {
+        "TELEGRAM_BOT_TOKEN": token,
+        "TELEGRAM_STATE_DIR": str(state_dir),
+    }
